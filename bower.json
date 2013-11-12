@@ -1,0 +1,10 @@
+{
+  "name": "live",
+  "version": "0.1.0",
+  "main": "live.js",
+  "dependencies": {
+    "backbone": "x",
+    "herit": "x",
+    "underscore": "x"
+  }
+}
