@@ -32,7 +32,7 @@
     connect: function () {
       if (!this.isDisconnected()) return;
       this.state = Live.CONNECTING;
-      return this.authRequired ? this.authorize() : this.createSocket();
+      return this.fetchAuthKey ? this.authorize() : this.createSocket();
     },
 
     createSocket: function () {
