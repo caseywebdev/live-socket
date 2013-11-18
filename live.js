@@ -44,14 +44,16 @@
     },
 
     authorize: function () {
-      this.state = Live.AUTHORIZING;
       this.fetchAuthKey(_.bind(function (er, authKey) {
         if (er) {
           this.onclose();
           throw er;
         }
         this.createSocket().send('authorize', authKey, _.bind(function (er) {
-          if (er) throw er;
+          if (er) {
+            this.onclose();
+            throw er;
+          }
           this.state = Live.CONNECTED;
           this.flushQueue();
         }, this));
@@ -66,7 +68,7 @@
           (this.isAuthorizing() && name === 'authorize')) {
         var id = _.uniqueId();
         this.callbacks[id] = cb;
-        this.socket.send(JSON.parse({id: id, name: name, data: data}));
+        this.socket.send(JSON.stringify({id: id, name: name, data: data}));
       } else {
         this.queue.push(arguments);
       }
