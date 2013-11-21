@@ -1,6 +1,6 @@
 {
   "name": "live",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "main": "live.js",
   "dependencies": {
     "backbone": "x",
