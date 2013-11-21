@@ -30,9 +30,7 @@
     isConnected: function () { return this.state === Live.CONNECTED; },
 
     connect: function () {
-      if (!this.isDisconnected()) return;
-      this.state = Live.CONNECTING;
-      return this.fetchAuthKey ? this.authorize() : this.createSocket();
+      return this.isDisconnected() ? this.createSocket() : this;
     },
 
     createSocket: function () {
@@ -40,16 +38,18 @@
       socket.onopen = _.bind(this.onopen, this);
       socket.onclose = _.bind(this.onclose, this);
       socket.onmessage = _.bind(this.onmessage, this);
+      this.state = Live.CONNECTING;
       return this;
     },
 
     authorize: function () {
+      this.state = Live.AUTHORIZING;
       this.fetchAuthKey(_.bind(function (er, authKey) {
         if (er) {
           this.onclose();
           throw er;
         }
-        this.createSocket().send('authorize', authKey, _.bind(function (er) {
+        this.send('authorize', authKey, _.bind(function (er) {
           if (er) {
             this.onclose();
             throw er;
@@ -82,7 +82,8 @@
     },
 
     onopen: function () {
-      this.state = this.fetchAuthKey ? Live.AUTHORIZING : Live.CONNECTED;
+      if (this.fetchAuthKey) return this.authorize();
+      this.state = Live.CONNECTED;
       this.flushQueue();
     },
 
