@@ -1,11 +1,16 @@
-(function () {
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['underscore', 'backbone', 'herit'], factory);
+  } else if (typeof exports !== 'undefined') {
+    module.exports =
+      factory(require('underscore'), require('backbone'), require('herit'));
+  } else {
+    root.Live = factory(root._, root.Backbone, root.herit);
+  }
+})(this, function (_, Backbone, herit) {
   'use strict';
 
-  var _ = window._;
-  var Backbone = window.Backbone;
-  var herit = window.herit;
-
-  var Live = window.Live = herit(_.extend({
+  var Live = herit(_.extend({
     reconnectWait: 1000,
 
     fetchAuthKey: null,
@@ -123,4 +128,6 @@
 
     CONNECTED: 3
   });
-})();
+
+  return Live;
+});
