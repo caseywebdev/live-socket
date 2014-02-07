@@ -21,7 +21,7 @@
 
     constructor: function (options) {
       _.extend(this, options);
-      this.callbacks = [];
+      this.callbacks = {};
       this.queue = [];
       this.state = Live.DISCONNECTED;
     },
