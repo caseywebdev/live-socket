@@ -11,7 +11,7 @@
   'use strict';
 
   var Live = herit(_.extend({
-    reconnectWait: 1000,
+    reconnectWait: 5000,
 
     fetchAuthKey: null,
 
@@ -19,20 +19,21 @@
 
     url: 'ws://' + location.host,
 
+    state: 'disconnected',
+
     constructor: function (options) {
       _.extend(this, options);
       this.callbacks = {};
       this.queue = [];
-      this.state = Live.DISCONNECTED;
     },
 
-    isDisconnected: function () { return this.state === Live.DISCONNECTED; },
+    isDisconnected: function () { return this.state === 'disconnected'; },
 
-    isConnecting: function () { return this.state === Live.CONNECTING; },
+    isConnecting: function () { return this.state === 'connecting'; },
 
-    isAuthorizing: function () { return this.state === Live.AUTHORIZING; },
+    isAuthorizing: function () { return this.state === 'authorizing'; },
 
-    isConnected: function () { return this.state === Live.CONNECTED; },
+    isConnected: function () { return this.state === 'connected'; },
 
     connect: function () {
       return this.isDisconnected() ? this.createSocket() : this;
@@ -43,12 +44,12 @@
       socket.onopen = _.bind(this.onopen, this);
       socket.onclose = _.bind(this.onclose, this);
       socket.onmessage = _.bind(this.onmessage, this);
-      this.state = Live.CONNECTING;
+      this.setState('connecting');
       return this;
     },
 
     authorize: function () {
-      this.state = Live.AUTHORIZING;
+      this.setState('authorizing');
       this.fetchAuthKey(_.bind(function (er, authKey) {
         if (er) {
           this.onclose();
@@ -59,7 +60,7 @@
             this.onclose();
             throw er;
           }
-          this.state = Live.CONNECTED;
+          this.setState('connected');
           this.flushQueue();
         }, this));
       }, this));
@@ -88,12 +89,12 @@
 
     onopen: function () {
       if (this.fetchAuthKey) return this.authorize();
-      this.state = Live.CONNECTED;
+      this.setState('connected');
       this.flushQueue();
     },
 
     onclose: function () {
-      this.state = Live.DISCONNECTED;
+      this.setState('disconnected');
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout =
         _.delay(_.bind(this.connect, this), this.reconnectWait);
@@ -118,16 +119,16 @@
         });
       }
       if (cb) cb(raw.error && new Error(raw.error), raw.data);
+    },
+
+    setState: function (state) {
+      var prevState = this.state;
+      if (state === prevState) return;
+      this.state = state;
+      this.trigger('live:state:' + state, prevState);
+      this.trigger('live:state', state, prevState);
     }
-  }, Backbone.Events), {
-    DISCONNECTED: 0,
-
-    CONNECTING: 1,
-
-    AUTHORIZING: 2,
-
-    CONNECTED: 3
-  });
+  }, Backbone.Events));
 
   return Live;
 });
