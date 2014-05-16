@@ -15,7 +15,7 @@
 
     fetchAuthKey: null,
 
-    socketConstructor: WebSocket,
+    socketConstructor: window.WebSocket,
 
     url: 'ws://' + location.host,
 
