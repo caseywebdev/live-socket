@@ -52,13 +52,13 @@
       this.setState('authorizing');
       this.fetchAuthKey(_.bind(function (er, authKey) {
         if (er) {
-          this.onclose();
-          throw er;
+          console.error(er);
+          return this.onclose();
         }
         this.send('authorize', authKey, _.bind(function (er) {
           if (er) {
-            this.onclose();
-            throw er;
+            console.error(er);
+            return this.onclose();
           }
           this.setState('connected');
           this.flushQueue();
