@@ -118,7 +118,7 @@
           socket.send(JSON.stringify(res));
         });
       }
-      if (cb) cb(raw.error && new Error(raw.error), raw.data);
+      if (cb) cb(raw.error && new Error(JSON.stringify(raw.error)), raw.data);
     },
 
     setState: function (state) {
