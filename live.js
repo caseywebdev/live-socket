@@ -11,7 +11,7 @@
   'use strict';
 
   var Live = herit(_.extend({
-    reconnectWait: 5000,
+    retryWait: 5000,
 
     fetchAuthKey: null,
 
@@ -36,32 +36,30 @@
     isConnected: function () { return this.state === 'connected'; },
 
     connect: function () {
-      return this.isDisconnected() ? this.createSocket() : this;
-    },
-
-    createSocket: function () {
+      if (!this.isDisconnected()) return this;
       var socket = this.socket = new this.socketConstructor(this.url);
-      socket.onopen = _.bind(this.onopen, this);
-      socket.onclose = _.bind(this.onclose, this);
-      socket.onmessage = _.bind(this.onmessage, this);
+      socket.onopen = _.bind(this.handleOpen, this);
+      socket.onclose = _.bind(this.handleClose, this);
+      socket.onmessage = _.bind(this.handleMessage, this);
       this.setState('connecting');
       return this;
     },
 
     authorize: function () {
-      this.setState('authorizing');
+      if (!this.isAuthorizing()) return this;
       this.fetchAuthKey(_.bind(function (er, authKey) {
+        if (!this.isAuthorizing()) return;
         if (er) {
           console.error(er);
-          return this.onclose();
+          return this.retry(this.authorize);
         }
-        this.send('authorize', authKey, _.bind(function (er) {
+        this.send('auth', authKey, _.bind(function (er) {
+          if (!this.isAuthorizing()) return;
           if (er) {
             console.error(er);
-            return this.onclose();
+            return this.retry(this.authorize);
           }
-          this.setState('connected');
-          this.flushQueue();
+          this.setState('connected').flushQueue();
         }, this));
       }, this));
       return this;
@@ -70,8 +68,7 @@
     send: function (name, data, cb) {
       if (!name) return this;
       if (this.isDisconnected()) this.connect();
-      if (this.isConnected() ||
-          (this.isAuthorizing() && name === 'authorize')) {
+      if (this.isConnected() || (this.isAuthorizing() && name === 'auth')) {
         var id = _.uniqueId();
         this.callbacks[id] = cb;
         this.socket.send(JSON.stringify({id: id, name: name, data: data}));
@@ -85,22 +82,35 @@
       var clone = this.queue.slice();
       this.queue = [];
       for (var args; args = clone.shift();) this.send.apply(this, args);
+      return this;
     },
 
-    onopen: function () {
-      if (this.fetchAuthKey) return this.authorize();
-      this.setState('connected');
-      this.flushQueue();
+    retry: function (method) {
+      if (!this.retryWait) return this;
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = _.delay(_.bind(method, this), this.retryWait);
+      return this;
     },
 
-    onclose: function () {
-      this.setState('disconnected');
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout =
-        _.delay(_.bind(this.connect, this), this.reconnectWait);
+    setState: function (state) {
+      var prevState = this.state;
+      if (state === prevState) return this;
+      this.state = state;
+      this.trigger('live:state:' + state, prevState);
+      this.trigger('live:state', state, prevState);
+      return this;
     },
 
-    onmessage: function (ev) {
+    handleOpen: function () {
+      if (this.fetchAuthKey) return this.setState('authorizing').authorize();
+      this.setState('connected').flushQueue();
+    },
+
+    handleClose: function () {
+      this.setState('disconnected').retry(this.connect);
+    },
+
+    handleMessage: function (ev) {
       var raw = ev.data;
       try { raw = JSON.parse(raw); } catch (er) { return; }
       var id = raw.id;
@@ -119,14 +129,6 @@
         });
       }
       if (cb) cb(raw.error && new Error(JSON.stringify(raw.error)), raw.data);
-    },
-
-    setState: function (state) {
-      var prevState = this.state;
-      if (state === prevState) return;
-      this.state = state;
-      this.trigger('live:state:' + state, prevState);
-      this.trigger('live:state', state, prevState);
     }
   }, Backbone.Events));
 
