@@ -50,13 +50,13 @@
       this.fetchAuthKey(_.bind(function (er, authKey) {
         if (!this.isAuthorizing()) return;
         if (er) {
-          console.error(er);
+          console.error(er.toString());
           return this.retry(this.authorize);
         }
         this.send('auth', authKey, _.bind(function (er) {
           if (!this.isAuthorizing()) return;
           if (er) {
-            console.error(er);
+            console.error(er.toString());
             return this.retry(this.authorize);
           }
           this.setState('connected').flushQueue();
