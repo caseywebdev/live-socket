@@ -10,7 +10,7 @@
 })(this, function (_, Backbone, herit) {
   'use strict';
 
-  var Live = herit(_.extend({
+  return herit(_.extend({
     retryWait: 5000,
 
     fetchAuthKey: null,
@@ -131,6 +131,4 @@
       if (cb) cb(raw.error && new Error(raw.error), raw.data);
     }
   }, Backbone.Events));
-
-  return Live;
 });
