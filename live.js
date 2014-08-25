@@ -11,7 +11,11 @@
   'use strict';
 
   return herit(_.extend({
-    retryWait: 5000,
+    retryWait: 1000,
+
+    retryMaxWait: 64000,
+
+    retryAttempt: 0,
 
     fetchAuthKey: null,
 
@@ -88,7 +92,10 @@
     retry: function (method) {
       if (!this.retryWait) return this;
       clearTimeout(this.retryTimeoutId);
-      this.retryTimeoutId = _.delay(_.bind(method, this), this.retryWait);
+      this.retryTimeoutId = _.delay(_.bind(method, this), Math.min(
+        this.retryWait * Math.pow(2, this.retryAttempt++),
+        this.retryMaxWait
+      ));
       return this;
     },
 
@@ -96,6 +103,7 @@
       var prevState = this.state;
       if (state === prevState) return this;
       this.state = state;
+      if (state === 'connected') this.retryAttempt = 0;
       this.trigger('live:state:' + state, prevState);
       this.trigger('live:state', state, prevState);
       return this;
