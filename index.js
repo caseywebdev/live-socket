@@ -26,7 +26,7 @@ exports.ws = function (server, listeners) {
       var name = raw.n;
       var listener = listeners[name];
       if (listener) {
-        return listener(socket, raw.data, function (er, data) {
+        return listener(socket, raw.d, function (er, data) {
           if (socket.readyState !== ws.OPEN) return;
           var res = {i: id};
           if (er) res.e = er.toString();
