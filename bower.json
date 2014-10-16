@@ -1,7 +1,12 @@
 {
   "name": "live",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "main": "live.js",
+  "ignore": [
+    "/.gitignore",
+    "/.npmignore",
+    "/package.json"
+  ],
   "dependencies": {
     "backbone": "x",
     "herit": "x",
