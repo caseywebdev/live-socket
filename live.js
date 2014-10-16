@@ -73,9 +73,13 @@
       if (!name) return this;
       if (this.isDisconnected()) this.connect();
       if (this.isConnected() || (this.isAuthorizing() && name === 'auth')) {
-        var id = _.uniqueId();
-        this.callbacks[id] = cb;
-        this.socket.send(JSON.stringify({id: id, name: name, data: data}));
+        var req = {n: name, d: data};
+        if (cb) {
+          var id = _.uniqueId();
+          this.callbacks[id] = cb;
+          req.i = id;
+        }
+        this.socket.send(JSON.stringify(req));
       } else {
         this.queue.push(arguments);
       }
@@ -121,22 +125,21 @@
     handleMessage: function (ev) {
       var raw = ev.data;
       try { raw = JSON.parse(raw); } catch (er) { return; }
-      var id = raw.id;
-      if (!id) return;
+      var id = raw.i;
       var cb = this.callbacks[id];
       delete this.callbacks[id];
-      var name = raw.name;
+      var name = raw.n;
       if (name) {
         var socket = this.socket;
-        return this.trigger(name, raw.data, function (er, data) {
+        return this.trigger(name, raw.d, function (er, data) {
           if (socket.readyState !== 1) return;
-          var res = {id: id};
-          if (er) res.error = er.message || er;
-          if (data) res.data = data;
+          var res = {i: id};
+          if (er) res.e = er.message || er;
+          if (data) res.d = data;
           socket.send(JSON.stringify(res));
         });
       }
-      if (cb) cb(raw.error && new Error(raw.error), raw.data);
+      if (cb) cb(raw.e && new Error(raw.e), raw.d);
     }
   }, Backbone.Events));
 });
