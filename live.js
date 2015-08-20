@@ -42,7 +42,10 @@
 
     retryAttempt: 0,
 
-    url: location.protocol.replace('http', 'ws') + '//' + location.host,
+    url:
+      typeof location === 'undefined' ?
+      null :
+      location.protocol.replace('http', 'ws') + '//' + location.host,
 
     isClosed: function () {
       return !this.socket ||
@@ -145,14 +148,13 @@
       var name = raw.n;
       if (!name) return;
 
-      var self = this;
-      this.trigger(name, raw.d, function (er, data) {
-        if (!self.isOpen()) return;
+      this.trigger(name, raw.d, (function (er, data) {
+        if (!this.isOpen()) return;
         var res = {i: id};
         if (er) res.e = Live.erToObj(res.e);
         if (data) res.d = data;
-        self.socket.send(JSON.stringify(res));
-      });
+        this.socket.send(JSON.stringify(res));
+      }).bind(this));
     }
   });
 
