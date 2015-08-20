@@ -57,7 +57,7 @@
 
     connect: function () {
       if (!this.isClosed()) return this;
-      var socket = this.socket = new this.socketConstructor(this.url);
+      var socket = this.socket = new WebSocket(this.url);
       socket.onopen = this.handleOpen.bind(this);
       socket.onclose = this.handleClose.bind(this);
       socket.onmessage = this.handleMessage.bind(this);
