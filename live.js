@@ -48,9 +48,7 @@
       location.protocol.replace('http', 'ws') + '//' + location.host,
 
     isClosed: function () {
-      return !this.socket ||
-        this.socket.readyState === WebSocket.CLOSING ||
-        this.socket.readyState === WebSocket.CLOSED;
+      return !this.socket || this.socket.readyState === WebSocket.CLOSED;
     },
 
     isOpen: function () {
