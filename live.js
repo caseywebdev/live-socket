@@ -6,7 +6,7 @@
   'use strict';
 
   var extend = function (a, b) {
-    for (var key in b) a[key] = b;
+    for (var key in b) a[key] = b[key];
     return a;
   };
 
