@@ -1,81 +1,100 @@
-(function (root, factory) {
-  if (typeof define === 'function' && define.amd) {
-    define(['underscore', 'backbone', 'herit'], factory);
-  } else if (typeof exports !== 'undefined') {
-    module.exports =
-      factory(require('underscore'), require('backbone'), require('herit'));
-  } else {
-    root.Live = factory(root._, root.Backbone, root.herit);
-  }
-})(this, function (_, Backbone, herit) {
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) define(factory);
+  else if (typeof exports !== 'undefined') module.exports = factory();
+  else global.Live = factory();
+})(this, function () {
   'use strict';
 
-  return herit(_.extend({
+  var extend = function (a, b) {
+    for (var key in b) a[key] = b;
+    return a;
+  };
+
+  var Live = function (options) {
+    extend(this, options);
+    this.callbacks = {};
+    this.listeners = {};
+    this.queue = [];
+    this.uid = 0;
+    this.connect();
+  };
+
+  extend(Live, {
+    erToObj: function (er) {
+      if (typeof er !== 'object') return {message: er};
+      var obj = {name: er.name, message: er.message};
+      for (var key in er) obj[key] = er[key];
+      return obj;
+    },
+
+    objToEr: function (obj) {
+      if (typeof obj !== 'object') return new Error(obj);
+      var er = new Error();
+      for (var key in obj) er[key] = obj[key];
+      return er;
+    }
+  });
+
+  extend(Live.prototype, {
     retryWait: 1000,
 
-    retryMaxWait: 64000,
+    retryMaxWait: 8000,
 
     retryAttempt: 0,
 
-    fetchAuthKey: null,
+    url: location.protocol.replace('http', 'ws') + '//' + location.host,
 
-    socketConstructor: window.WebSocket,
-
-    url: 'ws://' + location.host,
-
-    state: 'disconnected',
-
-    constructor: function (options) {
-      _.extend(this, options);
-      this.callbacks = {};
-      this.queue = [];
+    isClosed: function () {
+      return !this.socket ||
+        this.socket.readyState === WebSocket.CLOSING ||
+        this.socket.readyState === WebSocket.CLOSED;
     },
 
-    isDisconnected: function () { return this.state === 'disconnected'; },
-
-    isConnecting: function () { return this.state === 'connecting'; },
-
-    isAuthorizing: function () { return this.state === 'authorizing'; },
-
-    isConnected: function () { return this.state === 'connected'; },
+    isOpen: function () {
+      return this.socket && this.socket.readyState === WebSocket.OPEN;
+    },
 
     connect: function () {
-      if (!this.isDisconnected()) return this;
+      if (!this.isClosed()) return this;
       var socket = this.socket = new this.socketConstructor(this.url);
-      socket.onopen = _.bind(this.handleOpen, this);
-      socket.onclose = _.bind(this.handleClose, this);
-      socket.onmessage = _.bind(this.handleMessage, this);
-      this.setState('connecting');
+      socket.onopen = this.handleOpen.bind(this);
+      socket.onclose = this.handleClose.bind(this);
+      socket.onmessage = this.handleMessage.bind(this);
       return this;
     },
 
-    authorize: function () {
-      if (!this.isAuthorizing()) return this;
-      this.fetchAuthKey(_.bind(function (er, authKey) {
-        if (!this.isAuthorizing()) return;
-        if (er) {
-          console.error(er.toString());
-          return this.retry(this.authorize);
-        }
-        this.send('auth', authKey, _.bind(function (er) {
-          if (!this.isAuthorizing()) return;
-          if (er) {
-            console.error(er.toString());
-            return this.retry(this.authorize);
-          }
-          this.setState('connected').flushQueue();
-        }, this));
-      }, this));
-      return this;
+    on: function (name, cb) {
+      var listeners = this.listeners[name];
+      if (!listeners) listeners = this.listeners[name] = [];
+      listeners.push(cb);
+    },
+
+    off: function (name, cb) {
+      var listeners = this.listeners[name];
+      if (!listeners) return;
+      if (!cb) {
+        var i;
+        while ((i = listeners.indexOf(cb)) !== -1) listeners.splice(i, 1);
+        if (listeners.length) return;
+      }
+      delete this.listeners[name];
+    },
+
+    trigger: function (name, data, cb) {
+      var listeners = this.listeners[name];
+      if (!listeners) return;
+      for (var i = 0, l = listeners.length; i < l; ++i) {
+        listeners[i](data, cb);
+      }
     },
 
     send: function (name, data, cb) {
       if (!name) return this;
-      if (this.isDisconnected()) this.connect();
-      if (this.isConnected() || (this.isAuthorizing() && name === 'auth')) {
+      if (this.isClosed()) this.connect();
+      if (this.isOpen()) {
         var req = {n: name, d: data};
         if (cb) {
-          var id = _.uniqueId();
+          var id = ++this.uid;
           this.callbacks[id] = cb;
           req.i = id;
         }
@@ -89,57 +108,53 @@
     flushQueue: function () {
       var clone = this.queue.slice();
       this.queue = [];
-      for (var args; args = clone.shift();) this.send.apply(this, args);
+      var args;
+      while (args = clone.shift()) this.send.apply(this, args);
       return this;
     },
 
     retry: function (method) {
       if (!this.retryWait) return this;
       clearTimeout(this.retryTimeoutId);
-      this.retryTimeoutId = _.delay(_.bind(method, this), Math.min(
+      this.retryTimeoutId = setTimeout(method.bind(this), Math.min(
         this.retryWait * Math.pow(2, this.retryAttempt++),
         this.retryMaxWait
       ));
       return this;
     },
 
-    setState: function (state) {
-      var prevState = this.state;
-      if (state === prevState) return this;
-      this.state = state;
-      if (state === 'connected') this.retryAttempt = 0;
-      this.trigger('live:state:' + state, prevState);
-      this.trigger('live:state', state, prevState);
-      return this;
-    },
-
     handleOpen: function () {
-      if (this.fetchAuthKey) return this.setState('authorizing').authorize();
-      this.setState('connected').flushQueue();
+      this.trigger('open');
+      this.flushQueue();
     },
 
     handleClose: function () {
-      this.setState('disconnected').retry(this.connect);
+      this.trigger('close');
+      this.retry(this.connect);
     },
 
     handleMessage: function (ev) {
       var raw = ev.data;
       try { raw = JSON.parse(raw); } catch (er) { return; }
+
       var id = raw.i;
       var cb = this.callbacks[id];
       delete this.callbacks[id];
+      if (cb) return cb(raw.e && Live.objToEr(raw.e), raw.d);
+
       var name = raw.n;
-      if (name) {
-        var socket = this.socket;
-        return this.trigger(name, raw.d, function (er, data) {
-          if (socket.readyState !== 1) return;
-          var res = {i: id};
-          if (er) res.e = er.message || er;
-          if (data) res.d = data;
-          socket.send(JSON.stringify(res));
-        });
-      }
-      if (cb) cb(raw.e && new Error(raw.e), raw.d);
+      if (!name) return;
+
+      var self = this;
+      this.trigger(name, raw.d, function (er, data) {
+        if (!self.isOpen()) return;
+        var res = {i: id};
+        if (er) res.e = Live.erToObj(res.e);
+        if (data) res.d = data;
+        self.socket.send(JSON.stringify(res));
+      });
     }
-  }, Backbone.Events));
+  });
+
+  return Live;
 });
