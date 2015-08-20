@@ -68,25 +68,31 @@
       var listeners = this.listeners[name];
       if (!listeners) listeners = this.listeners[name] = [];
       listeners.push(cb);
+      return this;
     },
 
     off: function (name, cb) {
+      if (!name) {
+        this.listeners = {};
+        return this;
+      }
       var listeners = this.listeners[name];
-      if (!listeners) return;
+      if (!listeners) return this;
       if (!cb) {
         var i;
         while ((i = listeners.indexOf(cb)) !== -1) listeners.splice(i, 1);
-        if (listeners.length) return;
       }
-      delete this.listeners[name];
+      if (!listeners.length) delete this.listeners[name];
+      return this;
     },
 
     trigger: function (name, data, cb) {
       var listeners = this.listeners[name];
-      if (!listeners) return;
+      if (!listeners) return this;
       for (var i = 0, l = listeners.length; i < l; ++i) {
         listeners[i](data, cb);
       }
+      return this;
     },
 
     send: function (name, data, cb) {
