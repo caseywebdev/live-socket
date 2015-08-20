@@ -5,6 +5,8 @@
 })(this, function () {
   'use strict';
 
+  var ERROR = new Error('The WebSocket connection has closed.');
+
   var extend = function (a, b) {
     for (var key in b) a[key] = b[key];
     return a;
@@ -12,8 +14,8 @@
 
   var Live = function (options) {
     extend(this, options);
-    this.callbacks = {};
     this.listeners = {};
+    this.callbacks = {};
     this.queue = [];
     this.uid = 0;
     this.connect();
@@ -97,7 +99,6 @@
 
     send: function (name, data, cb) {
       if (!name) return this;
-      if (this.isClosed()) this.connect();
       if (this.isOpen()) {
         var req = {n: name, d: data};
         if (cb) {
@@ -131,11 +132,19 @@
     },
 
     handleOpen: function () {
+      this.retryAttempt = 0;
       this.trigger('open');
       this.flushQueue();
     },
 
     handleClose: function () {
+      var cbs = this.callbacks;
+      for (var id in cbs) cbs[id](ERROR);
+      this.callbacks = {};
+
+      var args;
+      while (args = this.queue.shift()) if (args[2]) args[2](ERROR);
+
       this.trigger('close');
       this.retry(this.connect);
     },
