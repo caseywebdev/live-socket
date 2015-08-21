@@ -7,7 +7,7 @@ exports.ws = function (server, listeners) {
     var uid = 0;
     socket.callbacks = {};
 
-    socket._send = socket.send;
+    var send = socket.send.bind(socket);
     socket.send = function (name, data, cb) {
       if (!name || socket.readyState !== ws.OPEN) return;
       var req = {n: name, d: data};
@@ -18,7 +18,7 @@ exports.ws = function (server, listeners) {
         req.i = id;
       }
 
-      socket._send(JSON.stringify(req));
+      send(JSON.stringify(req));
     };
 
     socket.on('message', function (raw) {
@@ -37,7 +37,7 @@ exports.ws = function (server, listeners) {
         var res = {i: id};
         if (er) res.e = Live.erToObj(er);
         if (data) res.d = data;
-        socket._send(JSON.stringify(res));
+        send(JSON.stringify(res));
       });
     });
   });
