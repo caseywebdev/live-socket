@@ -138,8 +138,7 @@
     },
 
     handleClose: function () {
-      var cbs = this.callbacks;
-      for (var id in cbs) cbs[id](ERROR);
+      for (var id in this.callbacks) this.callbacks[id](ERROR);
       this.callbacks = {};
 
       var args;
