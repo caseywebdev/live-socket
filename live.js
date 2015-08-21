@@ -114,10 +114,8 @@
     },
 
     flushQueue: function () {
-      var clone = this.queue.slice();
-      this.queue = [];
       var args;
-      while (args = clone.shift()) this.send.apply(this, args);
+      while (args = this.queue.shift()) this.send.apply(this, args);
       return this;
     },
 
