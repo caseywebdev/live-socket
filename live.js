@@ -133,8 +133,8 @@
 
     handleOpen: function () {
       this.retryAttempt = 0;
-      this.trigger('open');
       this.flushQueue();
+      this.trigger('open');
     },
 
     handleClose: function () {
