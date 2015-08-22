@@ -1,44 +1,34 @@
 var Live = require('./live');
 
-exports.ws = function (server, listeners) {
-  var ws = require('ws');
+module.exports = function (socket, listener) {
+  var uid = 0;
+  socket.callbacks = {};
 
-  server.on('connection', function (socket) {
-    var uid = 0;
-    socket.callbacks = {};
+  var send = socket.send.bind(socket);
+  socket.send = function (name, data, cb) {
+    if (!name) return;
+    var req = {n: name, d: data};
+    if (cb) {
+      var id = ++uid;
+      socket.callbacks[id] = cb;
+      req.i = id;
+    }
+    send(JSON.stringify(req));
+  };
 
-    var send = socket.send.bind(socket);
-    socket.send = function (name, data, cb) {
-      if (!name || socket.readyState !== ws.OPEN) return;
-      var req = {n: name, d: data};
+  socket.on('message', function (raw) {
+    try { raw = JSON.parse(raw); } catch (er) { return; }
 
-      if (cb) {
-        var id = ++uid;
-        socket.callbacks[id] = cb;
-        req.i = id;
-      }
+    var id = raw.i;
+    var cb = socket.callbacks[id];
+    delete socket.callbacks[id];
+    if (cb) return cb(raw.e && Live.objToEr(raw.e), raw.d);
 
-      send(JSON.stringify(req));
-    };
-
-    socket.on('message', function (raw) {
-      try { raw = JSON.parse(raw); } catch (er) { return; }
-
-      var id = raw.i;
-      var cb = socket.callbacks[id];
-      delete socket.callbacks[id];
-      if (cb) return cb(raw.e && Live.objToEr(raw.e), raw.d);
-
-      var listener = listeners[raw.n];
-      if (!listener) return;
-
-      listener(socket, raw.d, function (er, data) {
-        if (socket.readyState !== ws.OPEN) return;
-        var res = {i: id};
-        if (er) res.e = Live.erToObj(er);
-        if (data) res.d = data;
-        send(JSON.stringify(res));
-      });
+    listener(socket, raw.n, raw.d, function (er, data) {
+      var res = {i: id};
+      if (er) res.e = Live.erToObj(er);
+      if (data) res.d = data;
+      send(JSON.stringify(res));
     });
   });
 };

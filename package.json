@@ -1,6 +1,6 @@
 {
-  "name": "live-server-bindings",
-  "version": "0.7.10",
+  "name": "live-socket",
+  "version": "0.8.0",
   "author": "Casey Foster <c@sey.me>",
   "licence": "MIT",
   "repository": {
