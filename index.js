@@ -16,15 +16,15 @@ module.exports = function (socket, listener) {
     send(JSON.stringify(req));
   };
 
-  socket.on('message', function (raw) {
-    try { raw = JSON.parse(raw); } catch (er) { return; }
+  socket.on('message', function (data) {
+    try { data = JSON.parse(data.data); } catch (er) { return; }
 
-    var id = raw.i;
+    var id = data.i;
     var cb = socket.callbacks[id];
     delete socket.callbacks[id];
-    if (cb) return cb(raw.e && Live.objToEr(raw.e), raw.d);
+    if (cb) return cb(data.e && Live.objToEr(data.e), data.d);
 
-    listener(socket, raw.n, raw.d, function (er, data) {
+    listener(socket, data.n, data.d, function (er, data) {
       var res = {i: id};
       if (er) res.e = Live.erToObj(er);
       if (data) res.d = data;
