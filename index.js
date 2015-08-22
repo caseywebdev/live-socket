@@ -1,34 +1,55 @@
-var Live = require('./live');
+var LiveClient = require('./live');
+var events = require('events');
+var util = require('util');
 
-module.exports = function (socket, listener) {
-  var uid = 0;
-  socket.callbacks = {};
+var extend = LiveClient.extend;
+var erToObj = LiveClient.erToObj;
+var objToEr = LiveClient.objToEr;
 
-  var send = socket.send.bind(socket);
-  socket.send = function (name, data, cb) {
+var uid = 0;
+
+var Live = function (socket) {
+  this.callbacks = {};
+  this.socket = socket;
+  socket.on('open', this.emit.bind(this, 'open', this));
+  socket.on('message', this.handleMessage.bind(this));
+  socket.on('close', this.emit.bind(this, 'close', this));
+};
+
+util.inherits(Live, events.EventEmitter);
+
+extend(Live.prototype, {
+  handleMessage: function (data) {
+    try { data = JSON.parse(data); } catch (er) { return; }
+    var id = data.i;
+    var cb = this.callbacks[id];
+    delete this.callbacks[id];
+    if (cb) return cb(data.e && objToEr(data.e), data.d);
+    if (!data.n) return;
+    this.emit(data.n, this, data.d, this.handleCallback.bind(this, id));
+  },
+
+  handleCallback: function (id, er, data) {
+    var res = {i: id};
+    if (er) res.e = erToObj(er);
+    if (data) res.d = data;
+    this.socket.send(JSON.stringify(res));
+  },
+
+  send: function (name, data, cb) {
     if (!name) return;
     var req = {n: name, d: data};
     if (cb) {
       var id = ++uid;
-      socket.callbacks[id] = cb;
+      this.callbacks[id] = cb;
       req.i = id;
     }
-    send(JSON.stringify(req));
-  };
+    this.socket.send(JSON.stringify(req));
+  },
 
-  socket.on('message', function (data) {
-    try { data = JSON.parse(data.data); } catch (er) { return; }
+  close: function () {
+    this.socket.close();
+  }
+});
 
-    var id = data.i;
-    var cb = socket.callbacks[id];
-    delete socket.callbacks[id];
-    if (cb) return cb(data.e && Live.objToEr(data.e), data.d);
-
-    listener(socket, data.n, data.d, function (er, data) {
-      var res = {i: id};
-      if (er) res.e = Live.erToObj(er);
-      if (data) res.d = data;
-      send(JSON.stringify(res));
-    });
-  });
-};
+module.exports = Live;

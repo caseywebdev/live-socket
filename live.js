@@ -12,6 +12,20 @@
     return a;
   };
 
+  var erToObj = function (er) {
+    if (typeof er !== 'object') return {message: er};
+    var obj = {name: er.name, message: er.message};
+    for (var key in er) obj[key] = er[key];
+    return obj;
+  };
+
+  var objToEr = function (obj) {
+    if (typeof obj !== 'object') return new Error(obj);
+    var er = new Error();
+    for (var key in obj) er[key] = obj[key];
+    return er;
+  };
+
   var Live = function (options) {
     extend(this, options);
     this.listeners = {};
@@ -21,21 +35,7 @@
     this.connect();
   };
 
-  extend(Live, {
-    erToObj: function (er) {
-      if (typeof er !== 'object') return {message: er};
-      var obj = {name: er.name, message: er.message};
-      for (var key in er) obj[key] = er[key];
-      return obj;
-    },
-
-    objToEr: function (obj) {
-      if (typeof obj !== 'object') return new Error(obj);
-      var er = new Error();
-      for (var key in obj) er[key] = obj[key];
-      return er;
-    }
-  });
+  extend(Live, {extend: extend, erToObj: erToObj, objToEr: objToEr});
 
   extend(Live.prototype, {
     retryWait: 1000,
@@ -153,7 +153,7 @@
       var id = raw.i;
       var cb = this.callbacks[id];
       delete this.callbacks[id];
-      if (cb) return cb(raw.e && Live.objToEr(raw.e), raw.d);
+      if (cb) return cb(raw.e && objToEr(raw.e), raw.d);
 
       var name = raw.n;
       if (!name) return;
@@ -161,7 +161,7 @@
       this.trigger(name, raw.d, (function (er, data) {
         if (!this.isOpen()) return;
         var res = {i: id};
-        if (er) res.e = Live.erToObj(res.e);
+        if (er) res.e = erToObj(res.e);
         if (data) res.d = data;
         this.socket.send(JSON.stringify(res));
       }).bind(this));
