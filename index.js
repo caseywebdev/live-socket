@@ -22,7 +22,7 @@ exports.ws = function (server, listeners) {
     };
 
     socket.on('message', function (raw) {
-      try { raw = JSON.parse(raw); } catch (er) { return socket.close(); }
+      try { raw = JSON.parse(raw); } catch (er) { return; }
 
       var id = raw.i;
       var cb = socket.callbacks[id];
