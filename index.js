@@ -20,7 +20,7 @@ var Live = function (socket) {
 util.inherits(Live, events.EventEmitter);
 
 extend(Live.prototype, {
-  isReady: function () {
+  isOpen: function () {
     return this.socket.readyState === ws.OPEN;
   },
 
