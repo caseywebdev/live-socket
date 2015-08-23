@@ -1,6 +1,7 @@
 var LiveClient = require('./live');
 var events = require('events');
 var util = require('util');
+var ws = require('ws');
 
 var extend = LiveClient.extend;
 var erToObj = LiveClient.erToObj;
@@ -19,6 +20,10 @@ var Live = function (socket) {
 util.inherits(Live, events.EventEmitter);
 
 extend(Live.prototype, {
+  isReady: function () {
+    return this.socket.readyState === ws.OPEN;
+  },
+
   handleMessage: function (data) {
     try { data = JSON.parse(data); } catch (er) { return; }
     var id = data.i;
@@ -30,6 +35,7 @@ extend(Live.prototype, {
   },
 
   handleCallback: function (id, er, data) {
+    if (!this.isOpen()) return;
     var res = {i: id};
     if (er) res.e = erToObj(er);
     if (data) res.d = data;
@@ -37,7 +43,7 @@ extend(Live.prototype, {
   },
 
   send: function (name, data, cb) {
-    if (!name) return;
+    if (!name || !this.isOpen()) return;
     var req = {n: name, d: data};
     if (cb) {
       var id = ++uid;
