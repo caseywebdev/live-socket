@@ -20,7 +20,9 @@ util.inherits(Live, events.EventEmitter);
 
 extend(Live.prototype, {
   handleMessage: function (data) {
-    try { data = JSON.parse(data.data); } catch (er) { return; }
+    try { data = JSON.parse(data); } catch (er) {
+      try { data = JSON.parse(data.data); } catch (er) { return; }
+    }
     var id = data.i;
     var cb = this.callbacks[id];
     delete this.callbacks[id];
