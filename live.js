@@ -80,9 +80,11 @@
       }
       var listeners = this.listeners[name];
       if (!listeners) return this;
-      if (!cb) {
+      if (cb) {
         var i;
         while ((i = listeners.indexOf(cb)) !== -1) listeners.splice(i, 1);
+      } else {
+        listeners.length = 0;
       }
       if (!listeners.length) delete this.listeners[name];
       return this;

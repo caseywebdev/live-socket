@@ -19,6 +19,10 @@ var Live = function (socket) {
 util.inherits(Live, events.EventEmitter);
 
 extend(Live.prototype, {
+  isOpen: function () {
+    return this.socket.readyState === 1;
+  },
+
   handleMessage: function (data) {
     try { data = JSON.parse(data); } catch (er) {
       try { data = JSON.parse(data.data); } catch (er) { return; }
@@ -32,6 +36,7 @@ extend(Live.prototype, {
   },
 
   handleCallback: function (id, er, data) {
+    if (!this.isOpen()) return;
     var res = {i: id};
     if (er) res.e = erToObj(er);
     if (data) res.d = data;
@@ -39,7 +44,7 @@ extend(Live.prototype, {
   },
 
   send: function (name, data, cb) {
-    if (!name) return;
+    if (!this.isOpen() || !name) return;
     var req = {n: name, d: data};
     if (cb) {
       var id = ++uid;
