@@ -34,7 +34,6 @@
     this.uid = 0;
     if (this.socket) {
       this.shouldRetry = false;
-      this.socket.on('open', this.trigger.bind(this, 'open', this));
       this.socket.on('message', this.handleMessage.bind(this));
       this.socket.on('close', this.trigger.bind(this, 'close', this));
     } else this.connect();
