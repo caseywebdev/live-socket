@@ -166,7 +166,7 @@
       delete this.callbacks[id];
       if (cb) return cb(data.e && objToEr(data.e), data.d);
       if (!data.n) return;
-      this.trigger(data.n, this, data.d, this.handleCallback.bind(this, id));
+      this.trigger(data.n, data.d, this.handleCallback.bind(this, id));
     },
 
     handleCallback: function (id, er, data) {
