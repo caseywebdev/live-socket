@@ -55,12 +55,12 @@
       null :
       location.protocol.replace('http', 'ws') + '//' + location.host,
 
-    isClosed: function () {
-      return !this.socket || this.socket.readyState === CLOSED;
-    },
-
     isOpen: function () {
       return this.socket && this.socket.readyState === OPEN;
+    },
+
+    isClosed: function () {
+      return !this.socket || this.socket.readyState === CLOSED;
     },
 
     connect: function () {
