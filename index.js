@@ -5,6 +5,8 @@
 })(this, function () {
   'use strict';
 
+  var OPEN = 1;
+  var CLOSED = 3;
   var ERROR = new Error('The WebSocket connection has closed.');
 
   var extend = function (a, b) {
@@ -54,11 +56,11 @@
       location.protocol.replace('http', 'ws') + '//' + location.host,
 
     isClosed: function () {
-      return !this.socket || this.socket.readyState === 3;
+      return !this.socket || this.socket.readyState === CLOSED;
     },
 
     isOpen: function () {
-      return this.socket && this.socket.readyState === 1;
+      return this.socket && this.socket.readyState === OPEN;
     },
 
     connect: function () {
