@@ -8,6 +8,7 @@
   var OPEN = 1;
   var CLOSED = 3;
   var ERROR = new Error('The WebSocket connection has closed.');
+  var BLACKLIST = {open: true, close: true};
 
   var extend = function (a, b) {
     for (var key in b) a[key] = b[key];
@@ -167,7 +168,7 @@
       var cb = this.callbacks[id];
       delete this.callbacks[id];
       if (cb) return cb(data.e && objToEr(data.e), data.d);
-      if (!data.n) return;
+      if (data.n == null || BLACKLIST[data.n]) return;
       this.trigger(data.n, data.d, this.handleCallback.bind(this, id));
     },
 
