@@ -78,39 +78,6 @@
       this.socket.close();
     },
 
-    on: function (name, cb) {
-      var listeners = this.listeners[name];
-      if (!listeners) listeners = this.listeners[name] = [];
-      listeners.push(cb);
-      return this;
-    },
-
-    off: function (name, cb) {
-      if (!name) {
-        this.listeners = {};
-        return this;
-      }
-      var listeners = this.listeners[name];
-      if (!listeners) return this;
-      if (cb) {
-        var i;
-        while ((i = listeners.indexOf(cb)) !== -1) listeners.splice(i, 1);
-      } else {
-        listeners.length = 0;
-      }
-      if (!listeners.length) delete this.listeners[name];
-      return this;
-    },
-
-    trigger: function (name, data, cb) {
-      var listeners = this.listeners[name];
-      if (!listeners) return this;
-      for (var i = 0, l = listeners.length; i < l; ++i) {
-        listeners[i](data, cb);
-      }
-      return this;
-    },
-
     send: function (name, data, cb) {
       if (!name) return this;
       if (this.isOpen()) {
@@ -178,6 +145,32 @@
       if (er) res.e = erToObj(er);
       if (data) res.d = data;
       this.socket.send(JSON.stringify(res));
+    },
+
+    on: function (name, cb) {
+      var listeners = this.listeners[name];
+      if (!listeners) listeners = this.listeners[name] = [];
+      listeners.push(cb);
+      return this;
+    },
+
+    off: function (name, cb) {
+      if (!name) this.listeners = {};
+      if (!cb) delete this.listeners[name];
+      var listeners = this.listeners[name];
+      if (!listeners) return this;
+      listeners = this.listeners[name] = listeners.filter(function (_cb) {
+        return _cb !== cb;
+      });
+      if (!listeners.length) delete this.listeners[name];
+      return this;
+    },
+
+    trigger: function (name, data, cb) {
+      var listeners = this.listeners[name];
+      if (!listeners) return this;
+      for (var i = 0, l = listeners.length; i < l; ++i) listeners[i](data, cb);
+      return this;
     }
   });
 
