@@ -8,7 +8,7 @@
   var OPEN = 1;
   var CLOSED = 3;
   var ERROR = new Error('The WebSocket connection has closed.');
-  var BLACKLIST = {open: true, close: true};
+  var BLACKLIST = {open: true, close: true, error: true};
 
   var extend = function (a, b) {
     for (var key in b) a[key] = b[key];
@@ -37,8 +37,9 @@
     this.uid = 0;
     if (this.socket) {
       this.shouldRetry = false;
+      this.socket.on('close', this.handleClose.bind(this));
       this.socket.on('message', this.handleMessage.bind(this));
-      this.socket.on('close', this.trigger.bind(this, 'close', this));
+      this.socket.on('error', this.handleError.bind(this));
     } else this.connect();
   };
 
@@ -70,12 +71,14 @@
       socket.onopen = this.handleOpen.bind(this);
       socket.onclose = this.handleClose.bind(this);
       socket.onmessage = this.handleMessage.bind(this);
+      socket.onerror = this.handleError.bind(this);
       return this;
     },
 
     close: function () {
       this.shouldRetry = false;
       this.socket.close();
+      return this;
     },
 
     send: function (name, data, cb) {
@@ -137,6 +140,11 @@
       if (cb) return cb(data.e && objToEr(data.e), data.d);
       if (data.n == null || BLACKLIST[data.n]) return;
       this.trigger(data.n, data.d, this.handleCallback.bind(this, id));
+    },
+
+    handleError: function (er) {
+      this.trigger('error', er);
+      this.handleClose();
     },
 
     handleCallback: function (id, er, data) {
