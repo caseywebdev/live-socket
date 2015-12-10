@@ -34,7 +34,7 @@
     this.listeners = {};
     this.callbacks = {};
     this.queue = [];
-    this.uid = 0;
+    this.lastReqId = 0;
     if (this.socket) {
       this.shouldRetry = false;
       this.socket.on('close', this.handleClose.bind(this));
@@ -85,11 +85,7 @@
       if (!name) return this;
       if (this.isOpen()) {
         var req = {n: name, d: data};
-        if (cb) {
-          var id = ++this.uid;
-          this.callbacks[id] = cb;
-          req.i = id;
-        }
+        if (cb) this.callbacks[req.i = ++this.lastReqId] = cb;
         this.socket.send(JSON.stringify(req));
       } else {
         this.queue.push(arguments);
