@@ -1,10 +1,10 @@
 {
   "name": "live-socket",
-  "version": "0.10.6",
+  "version": "0.10.7",
   "author": "Casey Foster <c@sey.me>",
   "licence": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/caseywebdev/live"
+    "url": "https://github.com/caseywebdev/live-socket"
   }
 }
