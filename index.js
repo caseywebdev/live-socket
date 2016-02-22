@@ -25,7 +25,7 @@
   var objToEr = function (obj) {
     if (typeof obj !== 'object') return new Error(obj);
     var er = new Error();
-    for (var key in obj) er[key] = obj[key];
+    for (var key in obj) try { er[key] = obj[key]; } catch (er) {}
     return er;
   };
 
