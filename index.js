@@ -144,7 +144,7 @@
     },
 
     handleCallback: function (id, er, data) {
-      if (!this.isOpen()) return;
+      if (!id || !this.isOpen()) return;
       var res = {i: id};
       if (er) res.e = erToObj(er);
       if (data) res.d = data;
