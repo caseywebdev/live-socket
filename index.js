@@ -39,7 +39,6 @@
       this.shouldRetry = false;
       this.socket.on('close', this.handleClose.bind(this));
       this.socket.on('message', this.handleMessage.bind(this));
-      this.socket.on('error', this.handleError.bind(this));
     } else this.connect();
   };
 
