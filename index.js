@@ -54,7 +54,7 @@
     url:
       typeof location === 'undefined' ?
       null :
-      location.protocol.replace('http', 'ws') + '//' + location.host,
+      location.origin.replace('http', 'ws'),
 
     isOpen: function () {
       return this.socket && this.socket.readyState === OPEN;
